@@ -1,0 +1,9 @@
+.venv/
+.vscode/
+.idea/
+resources/
+**/__pycache__/
+.coverage
+*~
+tmp*
+test_fat_fs
