@@ -25,13 +25,26 @@ class Test_(unittest.TestCase):
 
     def test_get_root(self):
         with open('tests/resources/volume.fat32', 'rb') as image:
-            bpb = fs.extract_bpb_data(image)
-            root_address = fs.get_root(bpb)
+            bpb = fs.get_bpb(image)
+            root_address = fs.get_root_address(bpb)
             self.assertEqual(0x204000, root_address)
 
-    def test_get_cluster(self):
+    def test_get_cluster_address(self):
         with open('tests/resources/volume.fat32', 'rb') as image:
-            bpb = fs.extract_bpb_data(image)
-            root_address = fs.get_root(bpb)
-            self.assertEqual(0x204000, root_address)
+            bpb = fs.get_bpb(image)
+            root_cls = bpb['BPB_RootClus']
+            self.assertEqual(0x204000, fs.get_cluster_address(root_cls, bpb))
+            self.assertEqual(0x206000, fs.get_cluster_address(4, bpb))
+
+    def test_get_cluster_state(self):
+        self.assertEqual(fs.get_cluster_state(0x0FFFFFF8), 'EOF')
+        self.assertEqual(fs.get_cluster_state(0x0FFFFFFF), 'EOF')
+        self.assertEqual(fs.get_cluster_state(0x0FFFFFF7), 'BAD')
+        self.assertEqual(fs.get_cluster_state(0x0FFFFFF6), 'RES')
+        self.assertEqual(fs.get_cluster_state(0x00000002), 'ALL')
+        self.assertEqual(fs.get_cluster_state(0x00000000), 'FREE')
+        self.assertEqual(fs.get_cluster_state(0x00000701), 'LINK')
+
+if __name__ == '__main__':
+    unittest.main()
 
