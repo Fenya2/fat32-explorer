@@ -9,3 +9,4 @@ if __name__ == '__main__':
         print(fs.get_cluster_address(4, bpb))
         print(fs.get_fat_address(bpb))
         print(fs.get_root_address(bpb))
+        print(fs.get_cluster_address(3, bpb))

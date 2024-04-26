@@ -99,7 +99,7 @@ def get_file_clusters(clusterID, image, bpb):
     return clusters
 
 
-def ls_dir(directory_clusters, image, bpb):
+def ls_dir(directory_clusters: list, image, bpb):
     """
     Возвращает список файлов с информацией о них в указанной директории
     (список кластеров, принадлежащих директории)
@@ -112,7 +112,7 @@ def ls_dir(directory_clusters, image, bpb):
     pass
 
 
-def get_file_entries_in(cluster):
+def get_file_entries_in(cluster: bytes):
     """
     Возвращает список файловых записей в кластере принадлежащем директории
     (байты) (неудаленных)
@@ -120,34 +120,36 @@ def get_file_entries_in(cluster):
     entries = []
     for i in range(0, len(cluster), 32):
         entry = get_file_entry(cluster[i:i+32])
-        if entry == 'END':
+        if entry == 'end':
             break
-        if entry == 'RM':
+        if entry == 'rm':
             continue
         entries.append(entry)
     return entries
 
 
-def get_file_entry(entry):
+def get_file_entry(entry: bytes):
     """
     Возвращает разобранную файловую запись (Если это корректная неудаленная
-    запись LFN или SFN. Если SFN, то файл или директория)
+    запись LFN или SFN. Если SFN, то файл или директория) в виде словаря.
+    Если запись удалена или это конец директории, возвращает 'rm' или 'end'
+    соответственно.
     """
-    if entry_is_end():
-        return 'END'
+    if entry_is_end(entry):
+        return 'end'
     if entry_is_removed(entry):
-        return 'RM'
+        return 'rm'
 
     match define_file_entry(entry):
         case 'sfn':
-            return parse_SFN_entry
+            return parse_sfn_entry(entry)
         case 'lfn':
-            return parse_LFN_entry
+            return parse_sfn_entry(entry)
         case _:
             return None
 
 
-def entry_is_end(entry):
+def entry_is_end(entry: bytes):
     """
     Проверяет, что записей после текущей больше нет (включая ее) больше нет
     в кластере директории
@@ -155,27 +157,23 @@ def entry_is_end(entry):
     return entry[0] == 0x00
 
 
-def entry_is_removed(entry):
+def entry_is_removed(entry: bytes):
     """
     Проверяет, удален ли файл с переданной файловой записью
     """
     return entry[0] == 0xe5 or entry[0] == 0x05
 
 
-def define_file_entry(entry):
+def define_file_entry(entry: bytes):
     """
     Определяет тип файловой записи по ее сигнатуре
-    Возвращает 'SFN', 'LFN' или None соответственно
+    (подразумевается, что файл не удален)
+    Возвращает 'sfn' или 'lfn'.
     """
-    match entry[0xb]:
-        case 0x0f:
-            return 'lfn'
-        case 0x00:
-            return None
+    return 'lfn' if entry[0xb] == 0xf else 'sfn'
 
 
-
-def parse_LFN_entry(entry):
+def parse_lfn_entry(entry: bytes):
     """
     Разбирает файловую запись типа LFN.
     Возвращает словарь с заполненными полями
@@ -185,13 +183,55 @@ def parse_LFN_entry(entry):
     """
     # TODO
     lfn = {'type': 'lfn'}
+    raise ValueError("nee write")
     return lfn
 
 
-def parse_SFN_entry(entry):
+def parse_sfn_entry(entry: bytes):
     """
     Разбирает файловую запись типа SFN.
     Возвращает словарь с заполненными полями
+    entry: sfn
+    name: имя в DOS(8.3) формате.
+    type: 'dir' или 'file'
+    clusterID: начальный номер кластера файла
+    size: размер файла
+    # TODO дописать еще атрибутов
     """
-    # TODO
-    pass
+    sfn = {'entry': 'sfn'}
+    sfn['name'] = get_name_from_sfn(entry[0:11])
+    sfn['type'] = get_attr_from_sfn(entry[11])
+    sfn['clusterID'] = get_clusterID_from_sfn(entry)
+    sfn['size'] = get_size_from_sfn(entry[28:32])
+    return sfn
+
+
+def get_name_from_sfn(DIR_Name: bytes):
+    """
+    Возвращает строку из поля name записи sfn
+    """
+    name = DIR_Name[0:8].decode('ascii').strip()
+    extension = DIR_Name[8:11].decode('ascii').strip()
+    return f'{name}.{extension}' if extension != '' else name
+
+
+def get_attr_from_sfn(entry: int):
+    """
+    Разбирает поле атрибутов (1 байт) в записи sfn
+    """
+    # TODO правильное ли определение? мб использовать маску?
+    return 'dir' if entry == 0x10 else 'file'
+
+
+def get_clusterID_from_sfn(entry: bytes):
+    """
+    Возвращает номер начального кластера для файла с переданной sfn
+    """
+    return int.from_bytes(entry[26:28] + entry[20:22], 'little')
+
+
+def get_size_from_sfn(size_field: bytes):
+    """
+    Возвращает размер файла по полю в его файловой записи
+    """
+    return int.from_bytes(size_field, 'little')
