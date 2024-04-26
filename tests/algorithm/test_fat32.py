@@ -230,7 +230,7 @@ class Test_(unittest.TestCase):
             self.assertDictEqual(exp[i], act)
 
         lfn = [
-            b'\x00' * 32,
+            b'\x00' * 32,   
             bytes([
                 0xe5, 0x32, 0x33, 0x34,
                 0x35, 0x20, 0x20, 0x20,

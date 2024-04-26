@@ -6,7 +6,6 @@ if __name__ == '__main__':
         bpb = fs.get_bpb(image)
 
         # print(fs.get_cluster(2, image, bpb))
-        print(fs.get_cluster_address(4, bpb))
-        print(fs.get_fat_address(bpb))
-        print(fs.get_root_address(bpb))
-        print(fs.get_cluster_address(10, bpb))
+        directory_clusters = fs.get_file_clusters(11, image, bpb)
+        # print(fs.ls_dir(directory_clusters, image, bpb))
+        print(fs.get_cluster_address(11, bpb))

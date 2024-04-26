@@ -91,31 +91,71 @@ def get_file_clusters(clusterID, image, bpb):
     Возвращает список кластеров, принадлежащих файлу с начальным кластером
     cluster id, пробегая по таблице fat
     """
-    clusters = []
-    cur_cl = clusterID
+    clusters = [clusterID]
+    cur_cl = fat_of(clusterID, image, bpb)
     while get_cluster_state(cur_cl) == 'LINK':
         clusters.append(cur_cl)
-        cur_cl = fat_of(cur_cl)
+        cur_cl = fat_of(cur_cl, image, bpb)
     return clusters
 
 
-def ls_dir(directory_clusters: list, image, bpb):
+def ls_dir(directory_clusters: list, image, bpb: dict):
     """
-    Возвращает список файлов с информацией о них в указанной директории
-    (список кластеров, принадлежащих директории)
+    Возвращает список файлов (словарей) с информацией о них
+    в указанной директории (список кластеров, принадлежащих директории)
+    структура файла:
+
     """
+    # получение файловых записей всей директории
     file_entries = []
     for clusterID in directory_clusters:
         cluster = get_cluster(clusterID, image, bpb)
         file_entries += get_file_entries_in(cluster)
-    # TODO здесь надо "склеивать" LFN с их SFN (срезы)
-    pass
+    return get_files_from_file_entries(file_entries)
+
+
+def get_files_from_file_entries(file_entries: list):
+    """
+    Возвращает список файлов по переданному списку файловых записей
+    (должен быть корректным) ("схлопывает" lfn и sfn записи вместе")
+    name: имя файла (строка)
+    type: 'dir' или 'file'
+    clusterID: начальный номер кластера файла
+    size: размер файла
+    """
+    files = []
+    common_lfns = []
+    for entry in file_entries:
+        if entry['entry'] == 'sfn':
+            if common_lfns:
+                entry['name'] = extract_name_from_lfns(common_lfns)
+            del entry['entry']
+            files.append(entry)
+        elif entry['entry'] == 'lfn':
+            common_lfns.append(entry)
+        else:
+            raise ValueError("not recognized entry type")
+    return files
+
+
+def extract_name_from_lfns(lfns: list):
+    """
+    Возвращает сформированное имя из списка переданных lfn-записей
+    """
+    byte_name = b''
+    for lfn in reversed(lfns):
+        byte_name += lfn['name_part']
+    name = str(byte_name, 'utf16')
+    zero_index = name.find('\u0000')
+    if zero_index == -1:
+        return name
+    return name[0:zero_index]
 
 
 def get_file_entries_in(cluster: bytes):
     """
-    Возвращает список файловых записей в кластере принадлежащем директории
-    (байты) (неудаленных)
+    Возвращает список файловых записей в кластере, принадлежащем директории
+    (неудаленных)
     """
     entries = []
     for i in range(0, len(cluster), 32):
