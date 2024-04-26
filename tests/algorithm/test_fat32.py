@@ -137,3 +137,114 @@ class Test_(unittest.TestCase):
         act = fs.parse_sfn_entry(sfn)
         print(act)
         self.assertDictEqual(exp, act)
+
+    def test_parse_lfn_entry(self):
+        """
+        Проверяет, что корректно разбирает файловая запись типа lfn
+        """
+        lfn = [
+            bytes([
+                0x01, 0x61, 0x00, 0x62,
+                0x00, 0x63, 0x00, 0x64,
+                0x00, 0x65, 0x00, 0x0f,
+                0x00, 0xca, 0x66, 0x00,
+                0x67, 0x00, 0x68, 0x00,
+                0x69, 0x00, 0x6a, 0x00,
+                0x6b, 0x00, 0x00, 0x00,
+                0x6c, 0x00, 0x6d, 0x00
+            ]),
+
+            bytes([
+                0x41, 0x54, 0x00, 0x45,
+                0x00, 0x53, 0x00, 0x54,
+                0x00, 0x44, 0x00, 0x0f,
+                0x00, 0x34, 0x4f, 0x00,
+                0x53, 0x00, 0x4e, 0x00,
+                0x41, 0x00, 0x4d, 0x00,
+                0x45, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0xff, 0xff
+            ])
+        ]
+
+        exp = [
+            {
+                'entry': 'lfn',
+                'name_part': b'a\x00b\x00c\x00d\x00e\x00f\x00g\x00h\x00i\x00j\x00k\x00l\x00m\x00'
+            },
+            {
+                'entry': 'lfn',
+                'name_part': b'T\x00E\x00S\x00T\x00D\x00O\x00S\x00N\x00A\x00M\x00E\x00\x00\x00\xff\xff'
+            }
+        ]
+
+        for i in range(len(lfn)):
+            act = fs.parse_lfn_entry(lfn[i])
+            self.assertDictEqual(exp[i], act)
+
+    def test_get_file_entry(self):
+        """
+        Проверяет, что правильно разбирается файловая запись любого типа,
+        либо эта запись удалена и об этом сообщается, либо она последняя
+        и об этом сообщается
+        """
+        lfn = [
+            bytes([
+                0x43, 0x31, 0x00, 0x32,
+                0x00, 0x33, 0x00, 0x34,
+                0x00, 0x35, 0x00, 0x0f,
+                0x00, 0xca, 0x36, 0x00,
+                0x37, 0x00, 0x38, 0x00,
+                0x39, 0x00, 0x30, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0xff, 0xff, 0xff, 0xff
+            ]),
+
+            bytes([
+                0x31, 0x32, 0x33, 0x34,
+                0x35, 0x20, 0x20, 0x20,
+                0x44, 0x41, 0x54, 0x20,
+                0x00, 0x79, 0xab, 0x5b,
+                0x9a, 0x58, 0x9a, 0x58,
+                0x00, 0x00, 0xab, 0x5b,
+                0x9a, 0x58, 0x0a, 0x00,
+                0x06, 0x00, 0x00, 0x00
+            ]),
+        ]
+
+        exp = [
+            {
+                'entry': 'lfn',
+                'name_part': b'1\x002\x003\x004\x005\x006\x007\x008\x009\x000\x00\x00\x00\xff\xff\xff\xff'
+            },
+            {
+                'entry': 'sfn',
+                'name': '12345.DAT',
+                'type': 'file',
+                'clusterID': 10,
+                'size': 6
+            }
+        ]
+
+        for i in range(len(lfn)):
+            act = fs.get_file_entry(lfn[i])
+            self.assertDictEqual(exp[i], act)
+
+        lfn = [
+            b'\x00' * 32,
+            bytes([
+                0xe5, 0x32, 0x33, 0x34,
+                0x35, 0x20, 0x20, 0x20,
+                0x44, 0x41, 0x54, 0x20,
+                0x00, 0x79, 0xab, 0x5b,
+                0x9a, 0x58, 0x9a, 0x58,
+                0x00, 0x00, 0xab, 0x5b,
+                0x9a, 0x58, 0x0a, 0x00,
+                0x06, 0x00, 0x00, 0x00
+            ])
+        ]
+
+        exp = ['end', 'rm']
+
+        for i in range(len(lfn)):
+            act = fs.get_file_entry(lfn[i])
+            self.assertEqual(exp[i], act)

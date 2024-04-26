@@ -144,7 +144,7 @@ def get_file_entry(entry: bytes):
         case 'sfn':
             return parse_sfn_entry(entry)
         case 'lfn':
-            return parse_sfn_entry(entry)
+            return parse_lfn_entry(entry)
         case _:
             return None
 
@@ -176,14 +176,13 @@ def define_file_entry(entry: bytes):
 def parse_lfn_entry(entry: bytes):
     """
     Разбирает файловую запись типа LFN.
-    Возвращает словарь с заполненными полями
-    Складывает части названия файла
-    - type: 'lfn'
-    - name_part: часть имени файла
+    Возвращает словарь с заполненными полями:
+    - entry: 'lfn'
+    - name_part: байты - части имени
     """
     # TODO
-    lfn = {'type': 'lfn'}
-    raise ValueError("nee write")
+    lfn = {'entry': 'lfn'}
+    lfn['name_part'] = entry[1:11] + entry[14:26] + entry[28:32]
     return lfn
 
 
@@ -192,7 +191,7 @@ def parse_sfn_entry(entry: bytes):
     Разбирает файловую запись типа SFN.
     Возвращает словарь с заполненными полями
     entry: sfn
-    name: имя в DOS(8.3) формате.
+    name: имя в DOS(8.3) формате. 
     type: 'dir' или 'file'
     clusterID: начальный номер кластера файла
     size: размер файла
