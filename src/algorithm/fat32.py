@@ -1,3 +1,60 @@
+from pathlib import PurePosixPath
+
+
+class Fat32:
+    """
+    Класс, позволяющий обозревать файловую систему fat32.
+    """
+
+    def __init__(self):
+        self.image = None
+        self.bpb = None
+
+    def open(self, filepath):
+        self.image = open(filepath, 'rb')
+        self.bpb = get_bpb(self.image)
+
+    def close(self):
+        if self.image is not None:
+            self.image.close()
+
+    def ls(self, path):
+        """
+        Выводит информацию о файлах в переданной директории (полный путь
+        в posix.
+        """
+        path = PurePosixPath(path).parts
+        root_files = ls_dir(
+            get_file_clusters(self.bpb['BPB_RootClus'],
+                              self.image,
+                              self.bpb
+                              ), self.image, self.bpb)
+        if len(path) == 1:
+            if path[0] == '/':
+                return root_files
+            else:
+                raise ValueError('incorrect filepath')
+        return self._get_files_from_rec(root_files, path[1:])
+
+    def _get_files_from_rec(self, cur_files: list, path: list):
+        """
+        Рекурсивная функция, принимающая на вход файлы текущей директории
+        и путь. С каждым вызовом рекурсии, путь сокращается, файлы меняются,
+        пока путь совсем не станет нулевым - условие выхода
+        """
+        if len(path) == 0:
+            return cur_files
+        for file in cur_files:
+            if file['type'] == 'dir' and file['name'] == path[0]:
+                dir_clusters = get_file_clusters(
+                    file['clusterID'],
+                    self.image,
+                    self.bpb)
+                dir_files = ls_dir(dir_clusters, self.image, self.bpb)
+                return self._get_files_from_rec(dir_files, path[1:])
+        raise ValueError(f"Incorrect path {path} or directory is not exist")
+
+
 def get_bpb(image):
     """
     Извлекает нужные данные из нулевого сектора bpb, сохраняет в словарь
