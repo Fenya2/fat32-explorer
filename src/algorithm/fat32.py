@@ -1,58 +1,120 @@
-from pathlib import PurePosixPath
-
-
 class Fat32:
     """
     Класс, позволяющий обозревать файловую систему fat32.
+    Хранит рабочий каталог и список файлов в нем. Основные 4 команды(методы):
+    - cd <dir> - сменить рабочий каталог
+    - ls - просмотреть файлы в текущем каталоге
+    - сat <file> - просмотреть содержимое файла
+    - pwd - вывести путь к рабочему каталогу, относительно корневого
     """
 
     def __init__(self):
         self.image = None
         self.bpb = None
+        self.cur_path = None
+        self.cur_directory_clusters = None
+        self.cur_directory_files = None
 
     def open(self, filepath):
+        """
+        Открывает файл с размеченной на нем fat32,
+        устанавливает рабочий каталог на корневой, сохраняет его кластеры
+        """
         self.image = open(filepath, 'rb')
         self.bpb = get_bpb(self.image)
+        self.cur_path = []
+        self.cur_directory_clusters = get_file_clusters(
+            self.bpb['BPB_RootClus'],
+            self.image,
+            self.bpb
+        )
 
     def close(self):
+        """
+        Закрывает файл с fat32
+        """
         if self.image is not None:
             self.image.close()
 
-    def ls(self, path):
+    def ls(self):
         """
-        Выводит информацию о файлах в переданной директории (полный путь
-        в posix.
+        Возвращает список файлов в текущей директории из атрибута, если
+        их уже читали, иначе, берет из фс
         """
-        path = PurePosixPath(path).parts
-        root_files = ls_dir(
-            get_file_clusters(self.bpb['BPB_RootClus'],
-                              self.image,
-                              self.bpb
-                              ), self.image, self.bpb)
-        if len(path) == 1:
-            if path[0] == '/':
-                return root_files
-            else:
-                raise ValueError('incorrect filepath')
-        return self._get_files_from_rec(root_files, path[1:])
+        if self.cur_directory_files is None:
+            self.cur_directory_files = ls_dir(
+                self.cur_directory_clusters,
+                self.image,
+                self.bpb
+            )
+        return self.cur_directory_files
 
-    def _get_files_from_rec(self, cur_files: list, path: list):
+    def cd(self, dir_name: str):
         """
-        Рекурсивная функция, принимающая на вход файлы текущей директории
-        и путь. С каждым вызовом рекурсии, путь сокращается, файлы меняются,
-        пока путь совсем не станет нулевым - условие выхода
+        Меняет текущую директорию на директорию, лежащую в текущей.
+        Если такой директории нет, поднимает исключение.
+        Рассматриваются 3 случая:
+        1 - переход в . - текущий каталог - ничего не делает
+        2 - переход в родительский каталог (..)
+            2.1 - родительский каталог является корневым
+            2.2 - родительский каталог не является корневым
+        3 - остальные случаи
+        Во всех случаях, кроме первого чистит "кеш" файлов в текущей директории
         """
-        if len(path) == 0:
-            return cur_files
-        for file in cur_files:
-            if file['type'] == 'dir' and file['name'] == path[0]:
-                dir_clusters = get_file_clusters(
+        file = self._find_in_cur_dir_file_with_name(dir_name)
+        if file['type'] != 'dir':
+            raise ValueError("This file is not directory")
+        if file['name'] == '.':  # если текущий
+            return
+        self.cur_directory_files = None
+        if file['name'] == '..':  # если родительский
+            if file['clusterID'] == 0:  # если родительский - корневой
+                self.cur_path = []
+                self.cur_directory_clusters = get_file_clusters(
+                    self.bpb['BPB_RootClus'],
+                    self.image,
+                    self.bpb
+                )
+            else:  # если родительский - не корневой
+                self.cur_directory_clusters = get_file_clusters(
                     file['clusterID'],
                     self.image,
-                    self.bpb)
-                dir_files = ls_dir(dir_clusters, self.image, self.bpb)
-                return self._get_files_from_rec(dir_files, path[1:])
-        raise ValueError(f"Incorrect path {path} or directory is not exist")
+                    self.bpb
+                )
+                self.cur_path.pop()
+        else:  # если не родительский
+            self.cur_directory_clusters = get_file_clusters(
+                file['clusterID'],
+                self.image,
+                self.bpb
+            )
+            self.cur_path.append(file['name'])
+
+    def cat(self, file_name: str):
+        """
+        возвращает содержимое файла c именем file в текущей директории.
+        Если файла с таким именем нет, поднимает исключение
+        """
+        file = self._find_in_cur_dir_file_with_name(file_name)
+        if file['type'] != 'file':
+            raise ValueError("This file is not file. it's directory")
+        return get_file(file, self.image, self.bpb)
+
+    def pwd(self):
+        """
+        Возвращает текущий рабочий каталог
+        """
+        return '/'+'/'.join(self.cur_path)
+
+    def _find_in_cur_dir_file_with_name(self, name: str):
+        """
+        находит в текущей директории файл с переданным именем. Если файл
+        не находится, поднимает исключение. Иначе возвращает этот файл
+        """
+        for file in self.ls():
+            if file['name'] == name:
+                return file
+        raise ValueError('No such file or directory')
 
 
 def get_bpb(image):
@@ -141,6 +203,17 @@ def get_cluster_state(fatContent):
     if fatContent == 0x00000000:
         return 'FREE'
     return 'LINK'
+
+
+def get_file(file: dict, image, bpb) -> bytes:
+    """
+    Возвращает содержимое файла
+    """
+    file_clusters = get_file_clusters(file['clusterID'], image, bpb)
+    data = b''
+    for cluster in file_clusters:
+        data += get_cluster(cluster, image, bpb)
+    return data[0:file['size']]
 
 
 def get_file_clusters(clusterID, image, bpb):
