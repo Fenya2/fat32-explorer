@@ -181,6 +181,225 @@ class Test_(unittest.TestCase):
             act = fs.parse_lfn_entry(lfn[i])
             self.assertDictEqual(exp[i], act)
 
+    def test_get_files_from_file_entries(self):
+        file_entries = [
+            {'clusterID': 321, 'entry': 'sfn',
+                'name': 'K', 'size': 0, 'type': 'dir'},
+            {'clusterID': 332,
+             'entry': 'sfn',
+             'name': 'TESTDIR',
+             'size': 0,
+             'type': 'dir'},
+            {'entry': 'lfn',
+             'name_part': b'x\x00t\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+             b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'},
+            {'entry': 'lfn',
+             'name_part': b'A\x00l\x00e\x00x\x00e\x00i\x00_\x00f\x00i\x00l\x00e\x00.\x00'
+             b't\x00'},
+            {'clusterID': 330,
+             'entry': 'sfn',
+             'name': 'ALEXEI~1.TXT',
+             'size': 6513,
+             'type': 'file'},
+            {'entry': 'lfn',
+             'name_part': b'o\x00r\x00e\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff'
+             b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'},
+            {'entry': 'lfn',
+             'name_part': b' \x00s\x00o\x00m\x00e\x00 \x00c\x00h\x00a\x00r\x00s\x00 \x00'
+             b'm\x00'},
+            {'entry': 'lfn',
+             'name_part': b'g\x00h\x00 \x00b\x00u\x00t\x00 \x00i\x00 \x00t\x00y\x00p\x00'
+             b'e\x00'},
+            {'entry': 'lfn',
+             'name_part': b'i\x00n\x00k\x00 \x00t\x00h\x00i\x00s\x00 \x00e\x00n\x00o\x00'
+             b'u\x00'},
+            {'entry': 'lfn',
+             'name_part': b'o\x00r\x00r\x00e\x00c\x00t\x00l\x00y\x00 \x00i\x00 \x00t\x00'
+             b'h\x00'},
+            {'entry': 'lfn',
+             'name_part': b't\x00r\x00i\x00e\x00s\x00 \x00f\x00o\x00l\x00d\x00s\x00 \x00'
+             b'c\x00'},
+            {'entry': 'lfn',
+             'name_part': b't\x00 \x00t\x00h\x00a\x00t\x00 \x00l\x00f\x00n\x00 \x00e\x00'
+             b'n\x00'},
+            {'entry': 'lfn',
+             'name_part': b'l\x00e\x00n\x00a\x00m\x00e\x00 \x00t\x00o\x00 \x00t\x00e\x00'
+             b's\x00'},
+            {'entry': 'lfn',
+             'name_part': b'y\x00 \x00v\x00e\x00r\x00y\x00 \x00b\x00i\x00g\x00 \x00f\x00'
+             b'i\x00'},
+            {'entry': 'lfn',
+             'name_part': b'f\x00i\x00l\x00e\x00 \x00w\x00i\x00t\x00h\x00 \x00v\x00e\x00'
+             b'r\x00'},
+            {'clusterID': 0,
+             'entry': 'sfn',
+             'name': 'FILEWI~1',
+             'size': 0,
+             'type': 'file'}
+        ]
+
+        exp = [
+            {'clusterID': 321, 'name': 'K', 'size': 0, 'type': 'dir'},
+            {'clusterID': 332, 'name': 'TESTDIR', 'size': 0, 'type': 'dir'},
+            {'clusterID': 330, 'name': 'Alexei_file.txt',
+                'size': 6513, 'type': 'file'},
+            {'clusterID': 0,
+                'name': 'file with very very big filename to test that lfn entries folds '
+                'correctly i think this enough but i type some chars more',
+                'size': 0,
+                'type': 'file'}
+        ]
+
+        act = fs.get_files_from_file_entries(file_entries)
+
+        self.assertEqual(len(exp), len(act))
+        for i in range(len(exp)):
+            self.assertDictEqual(exp[i], act[i])
+
+
+    def test_extract_name_from_lfns(self):
+        lfns = [
+            {'entry': 'lfn',
+             'name_part': b'o\x00r\x00e\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff'
+             b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'},
+            {'entry': 'lfn',
+                'name_part': b' \x00s\x00o\x00m\x00e\x00 \x00c\x00h\x00a\x00r\x00s\x00 \x00'
+             b'm\x00'},
+            {'entry': 'lfn',
+                'name_part': b'g\x00h\x00 \x00b\x00u\x00t\x00 \x00i\x00 \x00t\x00y\x00p\x00'
+             b'e\x00'},
+            {'entry': 'lfn',
+                'name_part': b'i\x00n\x00k\x00 \x00t\x00h\x00i\x00s\x00 \x00e\x00n\x00o\x00'
+             b'u\x00'},
+            {'entry': 'lfn',
+                'name_part': b'o\x00r\x00r\x00e\x00c\x00t\x00l\x00y\x00 \x00i\x00 \x00t\x00'
+             b'h\x00'},
+            {'entry': 'lfn',
+                'name_part': b't\x00r\x00i\x00e\x00s\x00 \x00f\x00o\x00l\x00d\x00s\x00 \x00'
+             b'c\x00'},
+            {'entry': 'lfn',
+                'name_part': b't\x00 \x00t\x00h\x00a\x00t\x00 \x00l\x00f\x00n\x00 \x00e\x00'
+             b'n\x00'},
+            {'entry': 'lfn',
+                'name_part': b'l\x00e\x00n\x00a\x00m\x00e\x00 \x00t\x00o\x00 \x00t\x00e\x00'
+             b's\x00'},
+            {'entry': 'lfn',
+                'name_part': b'y\x00 \x00v\x00e\x00r\x00y\x00 \x00b\x00i\x00g\x00 \x00f\x00'
+             b'i\x00'},
+            {'entry': 'lfn',
+                'name_part': b'f\x00i\x00l\x00e\x00 \x00w\x00i\x00t\x00h\x00 \x00v\x00e\x00'
+             b'r\x00'}
+        ]
+        exp = 'file with very very big filename to test that lfn entries folds correctly i think this enough but i type some chars more'
+        act = fs.extract_name_from_lfns(lfns)
+        self.assertEqual(exp, act)
+
+    def test_get_file_entries_in(self):
+        """
+        Читает кластер директории, проверяет корректность считывания файловых
+        записей
+        """
+        with open('tests/resources/test_cluster.dat', 'rb') as image:
+            cluster = image.read()
+        act = fs.get_file_entries_in(cluster)
+        exp = [{'clusterID': 332, 'entry': 'sfn', 'name': '.', 'size': 0, 'type': 'dir'},
+               {'clusterID': 0, 'entry': 'sfn',
+                   'name': '..', 'size': 0, 'type': 'dir'},
+               {'clusterID': 333,
+                'entry': 'sfn',
+                'name': 'LFNFILE.DAT',
+                'size': 2,
+                'type': 'file'},
+               {'entry': 'lfn',
+                'name_part': b's\x00f\x00n\x00f\x00i\x00l\x00e\x00.\x00d\x00a\x00'
+                b't\x00\x00\x00\xff\xff'},
+               {'clusterID': 334,
+                'entry': 'sfn',
+                'name': 'SFNFILE.DAT',
+                'size': 3,
+                'type': 'file'},
+               {'entry': 'lfn',
+                'name_part': b'i\x00o\x00n\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff'
+                b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'},
+               {'entry': 'lfn',
+                'name_part': b't\x00e\x00n\x00d\x00e\x00d\x00_\x00e\x00x\x00t\x00e\x00n\x00'
+                b's\x00'},
+               {'entry': 'lfn',
+                'name_part': b'_\x00l\x00o\x00n\x00g\x00_\x00n\x00a\x00m\x00e\x00.\x00e\x00'
+                b'x\x00'},
+               {'entry': 'lfn',
+                'name_part': b'l\x00f\x00n\x00_\x00f\x00i\x00l\x00e\x00_\x00w\x00i\x00t\x00'
+                b'h\x00'},
+               {'clusterID': 335,
+                'entry': 'sfn',
+                'name': 'LFN_FI~1.EXT',
+                'size': 4,
+                'type': 'file'},
+               {'clusterID': 0, 'entry': 'sfn',
+                'name': 'EMPTY', 'size': 0, 'type': 'file'},
+               {'entry': 'lfn',
+                'name_part': b'e\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+                b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'},
+               {'entry': 'lfn',
+                'name_part': b'e\x00m\x00p\x00t\x00y\x00_\x00l\x00f\x00n\x00_\x00f\x00i\x00'
+                b'l\x00'},
+               {'clusterID': 0,
+                'entry': 'sfn',
+                'name': 'EMPTY_~1',
+                'size': 0,
+                'type': 'file'},
+               {'clusterID': 336, 'entry': 'sfn',
+                'name': 'DOSDIR', 'size': 0, 'type': 'dir'},
+               {'entry': 'lfn',
+                'name_part': b'l\x00f\x00n\x00d\x00i\x00r\x00\x00\x00\xff\xff\xff\xff\xff\xff'
+                b'\xff\xff\xff\xff\xff\xff'},
+               {'clusterID': 337, 'entry': 'sfn',
+                'name': 'LFNDIR', 'size': 0, 'type': 'dir'},
+               {'entry': 'lfn',
+                'name_part': b'l\x00o\x00n\x00g\x00_\x00n\x00a\x00m\x00e\x00\x00\x00'
+                b'\xff\xff\xff\xff\xff\xff'},
+               {'entry': 'lfn',
+                'name_part': b'l\x00f\x00n\x00_\x00f\x00i\x00r\x00_\x00w\x00i\x00t\x00h\x00'
+                b'_\x00'},
+               {'clusterID': 338,
+                'entry': 'sfn',
+                'name': 'LFN_FI~1',
+                'size': 0,
+                'type': 'dir'}]
+        self.assertEqual(len(exp), len(act))
+        for i in range(len(exp)):
+            self.assertDictEqual(exp[i], act[i])
+
+    def test_define_file_entry(self):
+        """
+        Проверяет, что корректно определяется тип файловой записи
+        """
+        for i in range(0xff):
+            if i == 0xf:
+                self.assertEquals('lfn', fs.define_file_entry(i))
+                continue
+            self.assertEquals('sfn', fs.define_file_entry(i))
+
+    def test_entry_is_removed(self):
+        """
+        Проверяет, удален ли файл с переданной файловой записью,
+        смотря на первый символ имени
+        """
+        for i in range(0xff):
+            if i == 0xe5:
+                self.assertEqual(True, fs.entry_is_removed(i))
+                continue
+            self.assertEqual(False, fs.entry_is_removed(i))
+
+    def test_entry_is_end(self):
+        """
+        Проверяет, что корректно определяется конец файловых записей в
+        файле директории по первому байту имени
+        """
+        self.assertEqual(True, fs.entry_is_end(0x00))
+        for i in range(1, 0xff):
+            self.assertEqual(False, fs.entry_is_end(i))
+
     def test_get_file_entry(self):
         """
         Проверяет, что правильно разбирается файловая запись любого типа,
@@ -230,7 +449,7 @@ class Test_(unittest.TestCase):
             self.assertDictEqual(exp[i], act)
 
         lfn = [
-            b'\x00' * 32,   
+            b'\x00' * 32,
             bytes([
                 0xe5, 0x32, 0x33, 0x34,
                 0x35, 0x20, 0x20, 0x20,

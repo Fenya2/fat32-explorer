@@ -152,9 +152,10 @@ def get_root_address(bpb):
     Возвращает адрес корневого каталога
     """
     return (
-        bpb['BPB_RsvdSecCnt']
-        + bpb['BS_DrvNum'] * bpb['BPB_NumFATs']
-        + (bpb['BPB_RootClus'] - 2) * bpb['BPB_SecPerClus']) * bpb['BPB_BytsPerSec']
+        bpb["BPB_RsvdSecCnt"]
+        + bpb["BS_DrvNum"] * bpb["BPB_NumFATs"]
+        + (bpb["BPB_RootClus"] - 2) * bpb["BPB_SecPerClus"]
+    ) * bpb["BPB_BytsPerSec"]
 
 
 def get_cluster_address(clID, bpb):
@@ -165,7 +166,7 @@ def get_cluster_address(clID, bpb):
         bpb['BPB_SecPerClus'] * bpb['BPB_BytsPerSec']
 
 
-def get_cluster(clID, image, bpb):
+def get_cluster(clID, image, bpb):  # TODO test
     """
     Возвращает содержимое кластера с переданным номером
     """
@@ -174,7 +175,7 @@ def get_cluster(clID, image, bpb):
     return image.read(bpb['BPB_SecPerClus'] * bpb['BPB_BytsPerSec'])
 
 
-def fat_of(clID, image, bpb):
+def fat_of(clID, image, bpb):  # TODO test
     """
     Возвращает значение в таблице fat для указанного кластера
     """
@@ -188,7 +189,7 @@ def get_cluster_state(fatContent):
     EOF - конец файла
     BAD - битый или потерянный кластер
     RES - зарезервированный кластер
-    ALL - выделенный кластер #TODO
+    ALL - выделенный кластер
     FREE - свободный кластер
     LINK - ссылка на следующий кластер
     """
@@ -205,7 +206,7 @@ def get_cluster_state(fatContent):
     return 'LINK'
 
 
-def get_file(file: dict, image, bpb) -> bytes:
+def get_file(file: dict, image, bpb) -> bytes:  # TODO test
     """
     Возвращает содержимое файла
     """
@@ -216,7 +217,7 @@ def get_file(file: dict, image, bpb) -> bytes:
     return data[0:file['size']]
 
 
-def get_file_clusters(clusterID, image, bpb):
+def get_file_clusters(clusterID, image, bpb):  # TODO test
     """
     Возвращает список кластеров, принадлежащих файлу с начальным кластером
     cluster id, пробегая по таблице fat
@@ -229,7 +230,7 @@ def get_file_clusters(clusterID, image, bpb):
     return clusters
 
 
-def ls_dir(directory_clusters: list, image, bpb: dict):
+def ls_dir(directory_clusters: list, image, bpb: dict):  # TODO test
     """
     Возвращает список файлов (словарей) с информацией о них
     в указанной директории (список кластеров, принадлежащих директории)
@@ -244,7 +245,7 @@ def ls_dir(directory_clusters: list, image, bpb: dict):
     return get_files_from_file_entries(file_entries)
 
 
-def get_files_from_file_entries(file_entries: list):
+def get_files_from_file_entries(file_entries: list):  # TODO test
     """
     Возвращает список файлов по переданному списку файловых записей
     (должен быть корректным) ("схлопывает" lfn и sfn записи вместе")
@@ -271,6 +272,7 @@ def get_files_from_file_entries(file_entries: list):
 def extract_name_from_lfns(lfns: list):
     """
     Возвращает сформированное имя из списка переданных lfn-записей
+    (считается, что они предшествуют своей sfn-записи)
     """
     byte_name = b''
     for lfn in reversed(lfns):
@@ -305,12 +307,12 @@ def get_file_entry(entry: bytes):
     Если запись удалена или это конец директории, возвращает 'rm' или 'end'
     соответственно.
     """
-    if entry_is_end(entry):
+    if entry_is_end(entry[0]):
         return 'end'
-    if entry_is_removed(entry):
+    if entry_is_removed(entry[0]):
         return 'rm'
 
-    match define_file_entry(entry):
+    match define_file_entry(entry[0xb]):
         case 'sfn':
             return parse_sfn_entry(entry)
         case 'lfn':
@@ -319,28 +321,29 @@ def get_file_entry(entry: bytes):
             return None
 
 
-def entry_is_end(entry: bytes):
+def entry_is_end(entry: int):
     """
     Проверяет, что записей после текущей больше нет (включая ее) больше нет
     в кластере директории
     """
-    return entry[0] == 0x00
+    return entry == 0x00
 
 
-def entry_is_removed(entry: bytes):
+def entry_is_removed(name_first_byte: int):
     """
-    Проверяет, удален ли файл с переданной файловой записью
+    Проверяет, удален ли файл с переданной файловой записью,
+    смотря на первый символ имени
     """
-    return entry[0] == 0xe5 or entry[0] == 0x05
+    return name_first_byte == 0xe5
 
 
-def define_file_entry(entry: bytes):
+def define_file_entry(attribute: int):
     """
-    Определяет тип файловой записи по ее сигнатуре
+    Определяет тип файловой записи по ее атрибуту
     (подразумевается, что файл не удален)
     Возвращает 'sfn' или 'lfn'.
     """
-    return 'lfn' if entry[0xb] == 0xf else 'sfn'
+    return 'lfn' if attribute == 0xf else 'sfn'
 
 
 def parse_lfn_entry(entry: bytes):
@@ -350,7 +353,6 @@ def parse_lfn_entry(entry: bytes):
     - entry: 'lfn'
     - name_part: байты - части имени
     """
-    # TODO
     lfn = {'entry': 'lfn'}
     lfn['name_part'] = entry[1:11] + entry[14:26] + entry[28:32]
     return lfn
@@ -361,7 +363,7 @@ def parse_sfn_entry(entry: bytes):
     Разбирает файловую запись типа SFN.
     Возвращает словарь с заполненными полями
     entry: sfn
-    name: имя в DOS(8.3) формате. 
+    name: имя в DOS(8.3) формате
     type: 'dir' или 'file'
     clusterID: начальный номер кластера файла
     size: размер файла

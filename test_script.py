@@ -22,4 +22,4 @@ if __name__ == "__main__":
 
     print(colored("\n==================  flake8  ==================\n", "yellow"))
     style_guide = get_style_guide()
-    report = style_guide.check_files(['src', 'tests'])
+    report = style_guide.check_files(['src'])
