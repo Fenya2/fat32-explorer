@@ -107,8 +107,74 @@ class Test_(unittest.TestCase):
         }
 
         act = fs.parse_sfn_entry(sfn)
-        print(act)
         self.assertDictEqual(exp, act)
+
+    def test_get_file_clusters(self):
+        with open('tests/resources/volume.fat32', 'rb') as image:
+            bpb = fs.get_bpb(image)
+            exp = [330, 331]
+            act = fs.get_file_clusters(330, image, bpb)
+            self.assertEqual(exp,  act)
+
+    def test_get_file(self):
+        with open('tests/resources/volume.fat32', 'rb') as image:
+            file_entry = {
+                'clusterID': 330,
+                'name': 'Alexei_file.txt',
+                'size': 6513,
+                'type': 'file'
+            }
+            bpb = fs.get_bpb(image)
+            act_file = fs.get_file(file_entry, image, bpb)
+            with open('mount_point/Alexei_file.txt', 'rb') as video:
+                exp_file = video.read()
+            self.assertEqual(exp_file, act_file)
+
+    def test_get_file_with_start_cluster(self):
+        with open('tests/resources/volume.fat32', 'rb') as image:
+            bpb = fs.get_bpb(image)
+            act_file = fs.get_file_with_start_cluster(533, 4202598, image, bpb)
+            with open('mount_point/VIDEO.MOV', 'rb') as video:
+                exp_file = video.read()
+            self.assertEqual(exp_file, act_file)
+
+    def test_fat_of(self):
+        with open('tests/resources/volume.fat32', 'rb') as image:
+            bpb = fs.get_bpb(image)
+            exp = 1210
+            act = fs.fat_of(1209, image, bpb)
+            self.assertEqual(exp, act)
+            exp = 'EOF'
+            act = fs.get_cluster_state(fs.fat_of(1559, image, bpb))
+            self.assertEqual(exp, act)
+
+    def test_ls_dir(self):
+        with open('tests/resources/volume.fat32', 'rb') as image:
+            bpb = fs.get_bpb(image)
+            act = fs.ls_dir(
+                fs.get_file_clusters(339, image, bpb), image, bpb)
+            self.assertEqual(194, len(act))
+
+            act = fs.ls_dir(
+                fs.get_file_clusters(2, image, bpb), image, bpb)
+            exp = [
+                {'clusterID': 321, 'name': 'K', 'size': 0, 'type': 'dir'},
+                {'clusterID': 332, 'name': 'TESTDIR', 'size': 0, 'type': 'dir'},
+                {'clusterID': 339, 'name': 'BIGDIR', 'size': 0, 'type': 'dir'},
+                {'clusterID': 533, 'name': 'VIDEO.MOV',
+                    'size': 4202598, 'type': 'file'},
+                {'clusterID': 330, 'name': 'Alexei_file.txt',
+                    'size': 6513, 'type': 'file'},
+                {'clusterID': 0,
+                    'name': 'file with very very big filename to test that lfn entries folds '
+                    'correctly i think this enough but i type some chars more',
+                    'size': 0,
+                    'type': 'file'}
+            ]
+
+            self.assertEqual(len(exp), len(act))
+            for i in range(len(exp)):
+                self.assertDictEqual(exp[i], act[i])
 
     def test_parse_sfn_entry_directory(self):
         """
@@ -135,7 +201,6 @@ class Test_(unittest.TestCase):
         }
 
         act = fs.parse_sfn_entry(sfn)
-        print(act)
         self.assertDictEqual(exp, act)
 
     def test_parse_lfn_entry(self):
@@ -255,7 +320,6 @@ class Test_(unittest.TestCase):
         self.assertEqual(len(exp), len(act))
         for i in range(len(exp)):
             self.assertDictEqual(exp[i], act[i])
-
 
     def test_extract_name_from_lfns(self):
         lfns = [

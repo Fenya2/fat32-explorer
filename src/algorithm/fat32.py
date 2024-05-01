@@ -117,7 +117,7 @@ class Fat32:
         raise ValueError('No such file or directory')
 
 
-def get_bpb(image):
+def get_bpb(image) -> dict:
     """
     Извлекает нужные данные из нулевого сектора bpb, сохраняет в словарь
     и возвращает его
@@ -140,14 +140,14 @@ def get_bpb(image):
     return ret
 
 
-def get_fat_address(bpb):
+def get_fat_address(bpb) -> int:
     """
     Возвращает адрес таблицы fat (первой)
     """
     return bpb['BPB_RsvdSecCnt'] * bpb['BPB_BytsPerSec']
 
 
-def get_root_address(bpb):
+def get_root_address(bpb) -> int:
     """
     Возвращает адрес корневого каталога
     """
@@ -158,7 +158,7 @@ def get_root_address(bpb):
     ) * bpb["BPB_BytsPerSec"]
 
 
-def get_cluster_address(clID, bpb):
+def get_cluster_address(clID, bpb) -> int:
     """
     Возвращает адрес кластера с указанным номером
     """
@@ -166,7 +166,7 @@ def get_cluster_address(clID, bpb):
         bpb['BPB_SecPerClus'] * bpb['BPB_BytsPerSec']
 
 
-def get_cluster(clID, image, bpb):  # TODO test
+def get_cluster(clID, image, bpb) -> bytes:  # TODO test
     """
     Возвращает содержимое кластера с переданным номером
     """
@@ -208,16 +208,29 @@ def get_cluster_state(fatContent):
 
 def get_file(file: dict, image, bpb) -> bytes:  # TODO test
     """
-    Возвращает содержимое файла
+    Возвращает содержимое файла по его информации из директории
+    (по сути перегруженный get_file_with_start_cluster)
     """
-    file_clusters = get_file_clusters(file['clusterID'], image, bpb)
+    return get_file_with_start_cluster(
+        file['clusterID'],
+        file['size'],
+        image,
+        bpb)
+
+
+def get_file_with_start_cluster(
+        clusterID: int, size: int, image, bpb) -> bytes:
+    """
+    Возвращает содержимое файла с стартовым кластером clusterID и размером size
+    """
+    file_clusters = get_file_clusters(clusterID, image, bpb)
     data = b''
     for cluster in file_clusters:
         data += get_cluster(cluster, image, bpb)
-    return data[0:file['size']]
+    return data[0:size]
 
 
-def get_file_clusters(clusterID, image, bpb):  # TODO test
+def get_file_clusters(clusterID, image, bpb):  # TODO test exist need one more
     """
     Возвращает список кластеров, принадлежащих файлу с начальным кластером
     cluster id, пробегая по таблице fat
@@ -230,22 +243,26 @@ def get_file_clusters(clusterID, image, bpb):  # TODO test
     return clusters
 
 
-def ls_dir(directory_clusters: list, image, bpb: dict):  # TODO test
+def ls_dir(directory_clusters: list, image, bpb: dict):
     """
     Возвращает список файлов (словарей) с информацией о них
     в указанной директории (список кластеров, принадлежащих директории)
     структура файла:
-
+    name: имя
+    type: 'dir' или 'file'
+    clusterID: начальный номер кластера файла
+    size: размер файла
     """
     # получение файловых записей всей директории
     file_entries = []
     for clusterID in directory_clusters:
         cluster = get_cluster(clusterID, image, bpb)
         file_entries += get_file_entries_in(cluster)
+
     return get_files_from_file_entries(file_entries)
 
 
-def get_files_from_file_entries(file_entries: list):  # TODO test
+def get_files_from_file_entries(file_entries: list):
     """
     Возвращает список файлов по переданному списку файловых записей
     (должен быть корректным) ("схлопывает" lfn и sfn записи вместе")

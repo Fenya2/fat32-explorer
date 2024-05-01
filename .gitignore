@@ -6,5 +6,5 @@
 *~
 tmp*
 test_fat_fs
-tests/resources/volume.fat32
+tests/resources/
 mount_point/
