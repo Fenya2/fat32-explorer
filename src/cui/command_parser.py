@@ -14,7 +14,7 @@ class CommandParser:
 
     def run(self):
         while True:
-            command = input('$ ').split()
+            command = shlex.split(input('$ '))
             if len(command) == 0:
                 continue
             match command[0]:
@@ -39,17 +39,15 @@ class CommandParser:
         """
         print('help message')
 
-    def _cd(self, args):
+    def _cd(self, command):
         """
         Change directory
         """
-        if len(args) != 1:
+        if len(command) != 2:
             print('Incorrect syntax. Usage: cd <directory>')
             return
         try:
-            # Используем shlex.split для правильного разбора строки с учетом кавычек
-            directory = shlex.split(args[0])[0]
-            self.fs.cd(directory)
+            self.fs.cd(command[1])
         except Exception as e:
             print(f'Error: {e}')
 
@@ -62,7 +60,7 @@ class CommandParser:
             print('incorrect syntax. Type "help" for help')
             return
         try:
-            print(self.fs.cat(command[1]).decode('utf-8'))
+            print(self.fs.cat(command[1]).decode(errors='replace'))
         except ValueError as e:
             print(e)
 
