@@ -3,6 +3,24 @@ import src.algorithm.fat32 as fs
 
 
 class Test_(unittest.TestCase):
+    def test_Fat32_cd(self):
+        with open('tests/resources/volume.fat32', 'rb') as image:
+            bpb = fs.get_bpb(image)
+            fat = fs.Fat32()
+            fat.open('tests/resources/volume.fat32')
+            fat.cd('TESTDIR')
+            self.assertEqual('/TESTDIR', fat.pwd())
+            self.assertEqual(fs.get_file_clusters(
+                332, image, bpb),
+                fat.cur_directory_clusters
+            )
+            fat.cd('..')
+            self.assertEqual('/', fat.pwd())
+            self.assertEqual(fs.get_file_clusters(
+                2, image, bpb),
+                fat.cur_directory_clusters
+            )
+
     def test_get_bpb(self):
         with open('tests/resources/volume.fat32', 'rb') as image:
             bpb = fs.get_bpb(image)
@@ -35,6 +53,14 @@ class Test_(unittest.TestCase):
             root_cls = bpb['BPB_RootClus']
             self.assertEqual(0x204000, fs.get_cluster_address(root_cls, bpb))
             self.assertEqual(0x206000, fs.get_cluster_address(4, bpb))
+
+    def test_get_cluster(self):
+        with open('tests/resources/volume.fat32', 'rb') as image:
+            bpb = fs.get_bpb(image)
+            act = fs.get_cluster(339, image, bpb)
+            image.seek(fs.get_cluster_address(339, bpb))
+            exp = image.read(4096)
+            self.assertEqual(exp, act)
 
     def test_get_cluster_state(self):
         """

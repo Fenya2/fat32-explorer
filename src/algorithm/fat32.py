@@ -166,7 +166,7 @@ def get_cluster_address(clID, bpb) -> int:
         bpb['BPB_SecPerClus'] * bpb['BPB_BytsPerSec']
 
 
-def get_cluster(clID, image, bpb) -> bytes:  # TODO test
+def get_cluster(clID, image, bpb) -> bytes:
     """
     Возвращает содержимое кластера с переданным номером
     """
@@ -175,7 +175,7 @@ def get_cluster(clID, image, bpb) -> bytes:  # TODO test
     return image.read(bpb['BPB_SecPerClus'] * bpb['BPB_BytsPerSec'])
 
 
-def fat_of(clID, image, bpb):  # TODO test
+def fat_of(clID, image, bpb):
     """
     Возвращает значение в таблице fat для указанного кластера
     """
@@ -206,7 +206,7 @@ def get_cluster_state(fatContent):
     return 'LINK'
 
 
-def get_file(file: dict, image, bpb) -> bytes:  # TODO test
+def get_file(file: dict, image, bpb) -> bytes:
     """
     Возвращает содержимое файла по его информации из директории
     (по сути перегруженный get_file_with_start_cluster)
