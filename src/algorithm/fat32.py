@@ -277,6 +277,7 @@ def get_files_from_file_entries(file_entries: list):
         if entry['entry'] == 'sfn':
             if common_lfns:
                 entry['name'] = extract_name_from_lfns(common_lfns)
+                common_lfns = []
             del entry['entry']
             files.append(entry)
         elif entry['entry'] == 'lfn':
