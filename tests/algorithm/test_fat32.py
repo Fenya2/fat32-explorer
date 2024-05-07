@@ -1,5 +1,6 @@
 import unittest
 import src.algorithm.fat32 as fs
+from datetime import datetime, date, time
 
 
 class Test_(unittest.TestCase):
@@ -557,3 +558,20 @@ class Test_(unittest.TestCase):
         for i in range(len(lfn)):
             act = fs.get_file_entry(lfn[i])
             self.assertEqual(exp[i], act)
+
+    def test_get_time_from_sfn(self):
+        exp = time(14, 8, 54)
+        act = fs.get_time_from_sfn(b'\x1b\x71')
+        self.assertEqual(exp, act)
+
+        exp = time(2, 42, 36)
+        act = fs.get_time_from_sfn(b'\x52\x15')
+        self.assertEqual(exp, act)
+
+        exp = time(9, 18, 12)
+        act = fs.get_time_from_sfn(b'\x46\x4a')
+        self.assertEqual(exp, act)
+
+        exp = time(5, 40, 50)
+        act = fs.get_time_from_sfn(b'\x19\x2d')
+        self.assertEqual(exp, act)

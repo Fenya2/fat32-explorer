@@ -1,4 +1,5 @@
-import datetime
+from datetime import datetime, date, time
+from bitarray import bitarray
 
 
 class Fat32:
@@ -433,16 +434,18 @@ def get_size_from_sfn(size_field: bytes):
     return int.from_bytes(size_field, 'little')
 
 
-def get_datetime_from_sfn(datetime: bytes) -> datetime.datetime:
+def get_datetime_from_sfn(datetime: bytes) -> datetime:
     """
     Возвращает дату и время (создания или последнего изменения)
     по переданным 4 байтам записи sfn (2 на время (DIR_CrtTime/DIR_WrtTime),
     2 на дату(DIR_CrtDate/DIR_WrtDate))
     """
-    return datetime.datetime.combine
+    # time = get_time_from_sfn(datetime[0:2])
+    # date = get_date_from_sfn(datetime[2:4])
+    # return datetime.combine(date, time)
 
 
-def get_date_from_sfn(date_field: bytes) -> datetime.date:
+def get_date_from_sfn(date_field: bytes) -> date:
     """
     Возвращает дату создания/последнего_изменения файла по 2 переданным
     байтам
@@ -450,9 +453,22 @@ def get_date_from_sfn(date_field: bytes) -> datetime.date:
     pass
 
 
-def get_time_from_sfn(date_field: bytes) -> datetime.time:
+def get_time_from_sfn(time_field: bytes) -> time:
     """
     Возвращает время создания/последнего_изменения файла по 2 переданным
-    байтам
+    байтам (по гринвичу)
     """
-    pass
+    bits = bitarray(endian='little')
+    bits.frombytes(time_field)
+    bits.reverse()
+    print(bits)
+    hours = bitarray('000') + bits[0:5]
+    print(hours)
+    hours = int.from_bytes(hours.tobytes())
+    minutes = bitarray('00') + bits[5:11]
+    print(minutes)
+    minutes = int.from_bytes(minutes.tobytes())
+    seconds = bitarray('000') + bits[11:16]
+    print(seconds)
+    seconds = int.from_bytes(seconds.tobytes()) * 2
+    return time(hours, minutes, seconds)
