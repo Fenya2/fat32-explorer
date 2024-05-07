@@ -575,3 +575,16 @@ class Test_(unittest.TestCase):
         exp = time(5, 40, 50)
         act = fs.get_time_from_sfn(b'\x19\x2d')
         self.assertEqual(exp, act)
+
+    def test_get_date_from_sfn(self):
+        exp = date(year=2015, month=7, day=20)
+        act = fs.get_date_from_sfn(b'\xf4\x46')
+        self.assertEqual(exp, act)
+
+        exp = date(year=2024, month=5, day=7)
+        act = fs.get_date_from_sfn(b'\xa7\x58')
+        self.assertEqual(exp, act)
+
+        exp = date(year=2024, month=4, day=30)
+        act = fs.get_date_from_sfn(b'\x9e\x58')
+        self.assertEqual(exp, act)

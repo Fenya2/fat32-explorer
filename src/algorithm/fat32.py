@@ -391,7 +391,6 @@ def parse_sfn_entry(entry: bytes):
     size: размер файла
     date_cr: дата создания файла (дата и время)
     date_wr: дата последнего изменения файла
-    # TODO дописать еще атрибутов
     """
     sfn = {'entry': 'sfn'}
     sfn['name'] = get_name_from_sfn(entry[0:11])
@@ -440,9 +439,9 @@ def get_datetime_from_sfn(datetime: bytes) -> datetime:
     по переданным 4 байтам записи sfn (2 на время (DIR_CrtTime/DIR_WrtTime),
     2 на дату(DIR_CrtDate/DIR_WrtDate))
     """
-    # time = get_time_from_sfn(datetime[0:2])
-    # date = get_date_from_sfn(datetime[2:4])
-    # return datetime.combine(date, time)
+    time = get_time_from_sfn(datetime[0:2])
+    date = get_date_from_sfn(datetime[2:4])
+    return datetime.combine(date, time)
 
 
 def get_date_from_sfn(date_field: bytes) -> date:
@@ -450,7 +449,18 @@ def get_date_from_sfn(date_field: bytes) -> date:
     Возвращает дату создания/последнего_изменения файла по 2 переданным
     байтам
     """
-    pass
+    bits = bitarray(endian='little')
+    bits.frombytes(date_field)
+    bits.reverse()
+
+    year = bitarray('0') + bits[0:7]
+    year = int.from_bytes(year.tobytes()) + 1980
+    month = bitarray('0000') + bits[7:11]
+    month = int.from_bytes(month.tobytes())
+    day = bitarray('000') + bits[11:16]
+    day = int.from_bytes(day.tobytes())
+
+    return date(year=year, month=month, day=day)
 
 
 def get_time_from_sfn(time_field: bytes) -> time:
@@ -461,14 +471,12 @@ def get_time_from_sfn(time_field: bytes) -> time:
     bits = bitarray(endian='little')
     bits.frombytes(time_field)
     bits.reverse()
-    print(bits)
+
     hours = bitarray('000') + bits[0:5]
-    print(hours)
     hours = int.from_bytes(hours.tobytes())
     minutes = bitarray('00') + bits[5:11]
-    print(minutes)
     minutes = int.from_bytes(minutes.tobytes())
     seconds = bitarray('000') + bits[11:16]
-    print(seconds)
     seconds = int.from_bytes(seconds.tobytes()) * 2
+
     return time(hours, minutes, seconds)
