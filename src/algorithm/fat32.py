@@ -415,7 +415,6 @@ def get_attr_from_sfn(entry: int):
     """
     Разбирает поле атрибутов (1 байт) в записи sfn
     """
-    # TODO правильное ли определение? мб использовать маску?
     return 'dir' if entry == 0x10 else 'file'
 
 
@@ -433,14 +432,14 @@ def get_size_from_sfn(size_field: bytes):
     return int.from_bytes(size_field, 'little')
 
 
-def get_datetime_from_sfn(datetime: bytes) -> datetime:
+def get_datetime_from_sfn(datetime_bytes: bytes) -> datetime:
     """
     Возвращает дату и время (создания или последнего изменения)
     по переданным 4 байтам записи sfn (2 на время (DIR_CrtTime/DIR_WrtTime),
     2 на дату(DIR_CrtDate/DIR_WrtDate))
     """
-    time = get_time_from_sfn(datetime[0:2])
-    date = get_date_from_sfn(datetime[2:4])
+    time = get_time_from_sfn(datetime_bytes[0:2])
+    date = get_date_from_sfn(datetime_bytes[2:4])
     return datetime.combine(date, time)
 
 

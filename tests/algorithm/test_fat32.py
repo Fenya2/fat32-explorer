@@ -130,7 +130,9 @@ class Test_(unittest.TestCase):
             'name': 'F10BYTES.TXT',
             'type': 'file',
             'clusterID': 6,
-            'size': 0xB
+            'size': 0xB,
+            'date_cr': datetime(2024, 4, 26, 1, 41, 12),
+            'date_wr': datetime(2024, 4, 26, 1, 41, 12)
         }
 
         act = fs.parse_sfn_entry(sfn)
@@ -184,20 +186,43 @@ class Test_(unittest.TestCase):
 
             act = fs.ls_dir(
                 fs.get_file_clusters(2, image, bpb), image, bpb)
-            exp = [
-                {'clusterID': 321, 'name': 'K', 'size': 0, 'type': 'dir'},
-                {'clusterID': 332, 'name': 'TESTDIR', 'size': 0, 'type': 'dir'},
-                {'clusterID': 339, 'name': 'BIGDIR', 'size': 0, 'type': 'dir'},
-                {'clusterID': 533, 'name': 'VIDEO.MOV',
-                    'size': 4202598, 'type': 'file'},
-                {'clusterID': 330, 'name': 'Alexei_file.txt',
-                    'size': 6513, 'type': 'file'},
-                {'clusterID': 0,
+            exp = [{'clusterID': 321,
+                    'date_cr': datetime(2024, 4, 29, 21, 6, 50),
+                    'date_wr': datetime(2024, 4, 29, 21, 7, 48),
+                    'name': 'K',
+                    'size': 0,
+                    'type': 'dir'},
+                   {'clusterID': 332,
+                    'date_cr': datetime(2024, 4, 30, 20, 40, 32),
+                    'date_wr': datetime(2024, 4, 30, 20, 44, 14),
+                    'name': 'TESTDIR',
+                    'size': 0,
+                    'type': 'dir'},
+                   {'clusterID': 339,
+                    'date_cr': datetime(2024, 5, 1, 8, 50, 42),
+                    'date_wr': datetime(2024, 5, 1, 8, 51, 8),
+                    'name': 'BIGDIR',
+                    'size': 0,
+                    'type': 'dir'},
+                   {'clusterID': 533,
+                    'date_cr': datetime(2024, 5, 1, 9, 36, 40),
+                    'date_wr': datetime(2024, 5, 7, 20, 9, 52),
+                    'name': 'VIDEO.MOV',
+                    'size': 4202598,
+                    'type': 'file'},
+                   {'clusterID': 330,
+                    'date_cr': datetime(2024, 4, 30, 5, 40, 50),
+                    'date_wr': datetime(2024, 4, 30, 5, 40, 50),
+                    'name': 'Alexei_file.txt',
+                    'size': 6513,
+                    'type': 'file'},
+                   {'clusterID': 0,
+                    'date_cr': datetime(2024, 4, 30, 21, 39, 24),
+                    'date_wr': datetime(2024, 4, 30, 21, 39, 24),
                     'name': 'file with very very big filename to test that lfn entries folds '
                     'correctly i think this enough but i type some chars more',
                     'size': 0,
-                    'type': 'file'}
-            ]
+                    'type': 'file'}]
 
             self.assertEqual(len(exp), len(act))
             for i in range(len(exp)):
@@ -209,14 +234,8 @@ class Test_(unittest.TestCase):
         (директория)
         """
         sfn = bytes([
-            0x44, 0x4f, 0x53, 0x44,
-            0x49, 0x52, 0x32, 0x20,
-            0x20, 0x20, 0x20, 0x10,
-            0x00, 0x44, 0x73, 0x03,
-            0x99, 0x58, 0x99, 0x58,
-            0x00, 0x00, 0x73, 0x03,
-            0x99, 0x58, 0x05, 0x00,
-            0x00, 0x00, 0x00, 0x00
+            0x44, 0x4f, 0x53, 0x44, 0x49, 0x52, 0x32, 0x20, 0x20, 0x20, 0x20, 0x10, 0x00, 0x44, 0x73, 0x03,
+            0x99, 0x58, 0x99, 0x58, 0x00, 0x00, 0x73, 0x03, 0x99, 0x58, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00
         ])
 
         exp = {
@@ -224,7 +243,9 @@ class Test_(unittest.TestCase):
             'name': 'DOSDIR2',
             'type': 'dir',
             'clusterID': 5,
-            'size': 0
+            'size': 0,
+            'date_cr': datetime(2024, 4, 25, 0, 27, 38),
+            'date_wr': datetime(2024, 4, 25, 0, 27, 38)
         }
 
         act = fs.parse_sfn_entry(sfn)
@@ -393,10 +414,23 @@ class Test_(unittest.TestCase):
         with open('tests/resources/test_cluster.dat', 'rb') as image:
             cluster = image.read()
         act = fs.get_file_entries_in(cluster)
-        exp = [{'clusterID': 332, 'entry': 'sfn', 'name': '.', 'size': 0, 'type': 'dir'},
-               {'clusterID': 0, 'entry': 'sfn',
-                   'name': '..', 'size': 0, 'type': 'dir'},
+        exp = [{'clusterID': 332,
+                'date_cr': datetime(2024, 4, 30, 20, 40, 32),
+                'date_wr': datetime(2024, 4, 30, 20, 40, 32),
+                'entry': 'sfn',
+                'name': '.',
+                'size': 0,
+                'type': 'dir'},
+               {'clusterID': 0,
+                'date_cr': datetime(2024, 4, 30, 20, 40, 32),
+                'date_wr': datetime(2024, 4, 30, 20, 40, 32),
+                'entry': 'sfn',
+                'name': '..',
+                'size': 0,
+                'type': 'dir'},
                {'clusterID': 333,
+                'date_cr': datetime(2024, 4, 30, 20, 41, 12),
+                'date_wr': datetime(2024, 4, 30, 20, 42, 26),
                 'entry': 'sfn',
                 'name': 'LFNFILE.DAT',
                 'size': 2,
@@ -405,6 +439,8 @@ class Test_(unittest.TestCase):
                 'name_part': b's\x00f\x00n\x00f\x00i\x00l\x00e\x00.\x00d\x00a\x00'
                 b't\x00\x00\x00\xff\xff'},
                {'clusterID': 334,
+                'date_cr': datetime(2024, 4, 30, 20, 41, 24),
+                'date_wr': datetime(2024, 4, 30, 20, 42, 34),
                 'entry': 'sfn',
                 'name': 'SFNFILE.DAT',
                 'size': 3,
@@ -422,12 +458,19 @@ class Test_(unittest.TestCase):
                 'name_part': b'l\x00f\x00n\x00_\x00f\x00i\x00l\x00e\x00_\x00w\x00i\x00t\x00'
                 b'h\x00'},
                {'clusterID': 335,
+                'date_cr': datetime(2024, 4, 30, 20, 41, 58),
+                'date_wr': datetime(2024, 4, 30, 20, 42, 48),
                 'entry': 'sfn',
                 'name': 'LFN_FI~1.EXT',
                 'size': 4,
                 'type': 'file'},
-               {'clusterID': 0, 'entry': 'sfn',
-                'name': 'EMPTY', 'size': 0, 'type': 'file'},
+               {'clusterID': 0,
+                'date_cr': datetime(2024, 4, 30, 20, 43, 12),
+                'date_wr': datetime(2024, 4, 30, 20, 43, 12),
+                'entry': 'sfn',
+                'name': 'EMPTY',
+                'size': 0,
+                'type': 'file'},
                {'entry': 'lfn',
                 'name_part': b'e\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
                 b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'},
@@ -435,17 +478,29 @@ class Test_(unittest.TestCase):
                 'name_part': b'e\x00m\x00p\x00t\x00y\x00_\x00l\x00f\x00n\x00_\x00f\x00i\x00'
                 b'l\x00'},
                {'clusterID': 0,
+                'date_cr': datetime(2024, 4, 30, 20, 43, 26),
+                'date_wr': datetime(2024, 4, 30, 20, 43, 26),
                 'entry': 'sfn',
                 'name': 'EMPTY_~1',
                 'size': 0,
                 'type': 'file'},
-               {'clusterID': 336, 'entry': 'sfn',
-                'name': 'DOSDIR', 'size': 0, 'type': 'dir'},
+               {'clusterID': 336,
+                'date_cr': datetime(2024, 4, 30, 20, 43, 46),
+                'date_wr': datetime(2024, 4, 30, 20, 43, 46),
+                'entry': 'sfn',
+                'name': 'DOSDIR',
+                'size': 0,
+                'type': 'dir'},
                {'entry': 'lfn',
                 'name_part': b'l\x00f\x00n\x00d\x00i\x00r\x00\x00\x00\xff\xff\xff\xff\xff\xff'
                 b'\xff\xff\xff\xff\xff\xff'},
-               {'clusterID': 337, 'entry': 'sfn',
-                'name': 'LFNDIR', 'size': 0, 'type': 'dir'},
+               {'clusterID': 337,
+                'date_cr': datetime(2024, 4, 30, 20, 44, 2),
+                'date_wr': datetime(2024, 4, 30, 20, 44, 2),
+                'entry': 'sfn',
+                'name': 'LFNDIR',
+                'size': 0,
+                'type': 'dir'},
                {'entry': 'lfn',
                 'name_part': b'l\x00o\x00n\x00g\x00_\x00n\x00a\x00m\x00e\x00\x00\x00'
                 b'\xff\xff\xff\xff\xff\xff'},
@@ -453,10 +508,13 @@ class Test_(unittest.TestCase):
                 'name_part': b'l\x00f\x00n\x00_\x00f\x00i\x00r\x00_\x00w\x00i\x00t\x00h\x00'
                 b'_\x00'},
                {'clusterID': 338,
+                'date_cr': datetime(2024, 4, 30, 20, 44, 14),
+                'date_wr': datetime(2024, 4, 30, 20, 44, 14),
                 'entry': 'sfn',
                 'name': 'LFN_FI~1',
                 'size': 0,
-                'type': 'dir'}]
+                'type': 'dir'}
+               ]
         self.assertEqual(len(exp), len(act))
         for i in range(len(exp)):
             self.assertDictEqual(exp[i], act[i])
@@ -531,7 +589,9 @@ class Test_(unittest.TestCase):
                 'name': '12345.DAT',
                 'type': 'file',
                 'clusterID': 10,
-                'size': 6
+                'size': 6,
+                'date_cr': datetime(2024, 4, 26, 11, 29, 22),
+                'date_wr': datetime(2024, 4, 26, 11, 29, 22)
             }
         ]
 

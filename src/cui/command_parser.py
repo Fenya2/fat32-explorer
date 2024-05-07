@@ -75,6 +75,10 @@ class CommandParser:
         Выводит отформатированный список файлов в текущей директории
         """
         files = self.fs.ls()
-        headers = ["Type", "Name", "Size"]
-        data = [(file['type'], file['name'], file['size']) for file in files]
+        headers = ["Type", "Name", "Size", "Date created", "Date modified"]
+        data = [(file['type'],
+                 file['name'],
+                 file['size'],
+                 str(file['date_cr']),
+                 str(file['date_wr'])) for file in files]
         print(tabulate(data, headers=headers, tablefmt="plain"))
