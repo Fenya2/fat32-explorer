@@ -1,3 +1,6 @@
+import datetime
+
+
 class Fat32:
     """
     Класс, позволяющий обозревать файловую систему fat32.
@@ -385,6 +388,8 @@ def parse_sfn_entry(entry: bytes):
     type: 'dir' или 'file'
     clusterID: начальный номер кластера файла
     size: размер файла
+    date_cr: дата создания файла (дата и время)
+    date_wr: дата последнего изменения файла
     # TODO дописать еще атрибутов
     """
     sfn = {'entry': 'sfn'}
@@ -392,6 +397,8 @@ def parse_sfn_entry(entry: bytes):
     sfn['type'] = get_attr_from_sfn(entry[11])
     sfn['clusterID'] = get_clusterID_from_sfn(entry)
     sfn['size'] = get_size_from_sfn(entry[28:32])
+    sfn['date_cr'] = get_datetime_from_sfn(entry[14:18])
+    sfn['date_wr'] = get_datetime_from_sfn(entry[22:26])
     return sfn
 
 
@@ -424,3 +431,28 @@ def get_size_from_sfn(size_field: bytes):
     Возвращает размер файла по полю в его файловой записи
     """
     return int.from_bytes(size_field, 'little')
+
+
+def get_datetime_from_sfn(datetime: bytes) -> datetime.datetime:
+    """
+    Возвращает дату и время (создания или последнего изменения)
+    по переданным 4 байтам записи sfn (2 на время (DIR_CrtTime/DIR_WrtTime),
+    2 на дату(DIR_CrtDate/DIR_WrtDate))
+    """
+    return datetime.datetime.combine
+
+
+def get_date_from_sfn(date_field: bytes) -> datetime.date:
+    """
+    Возвращает дату создания/последнего_изменения файла по 2 переданным
+    байтам
+    """
+    pass
+
+
+def get_time_from_sfn(date_field: bytes) -> datetime.time:
+    """
+    Возвращает время создания/последнего_изменения файла по 2 переданным
+    байтам
+    """
+    pass
